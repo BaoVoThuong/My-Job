@@ -16,7 +16,7 @@ export const mockJobs = [
   },
   {
     id: 2,
-    logo: 'https://play-lh.googleusercontent.com/KCMTYuiTrKom4Vyf0G4foetVOwhKWzNbHWumV73IXexAIy5TTgZipL52WTt8ICL-oIo',
+    logo: 'https://static.vecteezy.com/system/resources/previews/018/930/480/non_2x/linkedin-logo-linkedin-icon-transparent-free-png.png',
     title: 'UI/UX Designer',
     company: 'YouTube',
     location: 'Minnesota',
@@ -31,7 +31,7 @@ export const mockJobs = [
   },
   {
     id: 3,
-    logo: 'https://play-lh.googleusercontent.com/KCMTYuiTrKom4Vyf0G4foetVOwhKWzNbHWumV73IXexAIy5TTgZipL52WTt8ICL-oIo',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Slack_icon_2019.svg/2048px-Slack_icon_2019.svg.png',
     title: 'Senior UX Designer',
     company: 'Slack',
     location: 'United Kingdom of Great Britain',
@@ -61,7 +61,7 @@ export const mockJobs = [
   },
   {
     id: 5,
-    logo: 'https://play-lh.googleusercontent.com/KCMTYuiTrKom4Vyf0G4foetVOwhKWzNbHWumV73IXexAIy5TTgZipL52WTt8ICL-oIo',
+    logo: 'https://static.vecteezy.com/system/resources/previews/018/930/480/non_2x/linkedin-logo-linkedin-icon-transparent-free-png.png',
     title: 'Technical Support Specialist',
     company: 'Google Inc.',
     location: 'Idaho',
@@ -76,7 +76,7 @@ export const mockJobs = [
   },
   {
     id: 6,
-    logo: 'https://play-lh.googleusercontent.com/KCMTYuiTrKom4Vyf0G4foetVOwhKWzNbHWumV73IXexAIy5TTgZipL52WTt8ICL-oIo',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Slack_icon_2019.svg/2048px-Slack_icon_2019.svg.png',
     title: 'Product Designer',
     company: 'Twitter',
     location: 'Sivas',
@@ -91,7 +91,7 @@ export const mockJobs = [
   },
   {
     id: 7,
-    logo: 'https://play-lh.googleusercontent.com/KCMTYuiTrKom4Vyf0G4foetVOwhKWzNbHWumV73IXexAIy5TTgZipL52WTt8ICL-oIo',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Slack_icon_2019.svg/2048px-Slack_icon_2019.svg.png',
     title: 'Project Manager',
     company: 'Microsoft',
     location: 'Ohio',
@@ -121,7 +121,7 @@ export const mockJobs = [
   },
   {
     id: 9,
-    logo: 'https://play-lh.googleusercontent.com/KCMTYuiTrKom4Vyf0G4foetVOwhKWzNbHWumV73IXexAIy5TTgZipL52WTt8ICL-oIo',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
     title: 'Technical Support Specialist',
     company: 'Google Inc.',
     location: 'Idaho',
@@ -136,7 +136,7 @@ export const mockJobs = [
   },
   {
     id: 10,
-    logo: 'https://play-lh.googleusercontent.com/KCMTYuiTrKom4Vyf0G4foetVOwhKWzNbHWumV73IXexAIy5TTgZipL52WTt8ICL-oIo',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Slack_icon_2019.svg/2048px-Slack_icon_2019.svg.png',
     title: 'Marketing Manager',
     company: 'Microsoft',
     location: 'Konya',
@@ -166,7 +166,7 @@ export const mockJobs = [
   },
   {
     id: 12,
-    logo: 'https://play-lh.googleusercontent.com/KCMTYuiTrKom4Vyf0G4foetVOwhKWzNbHWumV73IXexAIy5TTgZipL52WTt8ICL-oIo',
+    logo: 'https://static.vecteezy.com/system/resources/previews/023/741/147/non_2x/discord-logo-icon-social-media-icon-free-png.png',
     title: 'Interaction Designer',
     company: 'Figma',
     location: 'Penn',
