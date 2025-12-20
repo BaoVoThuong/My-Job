@@ -5,7 +5,7 @@ const navItems = [
   { to: '/jobs', icon: LayoutGrid, label: 'Overview' },
   { to: '/jobs/applied-jobs', icon: Briefcase, label: 'Applied Jobs' },
   { to: '/jobs/favorite-jobs', icon: Heart, label: 'Favorite Jobs' },
-  { to: '/jobs/job-alert', icon: AlertCircle, label: 'Job Alert', badge: '09' },
+  { to: '/jobs/alert-jobs', icon: AlertCircle, label: 'Job Alert', badge: '09' },
   { to: '/jobs/vip-account', icon: Star, label: 'Vip account' },
   { to: '/jobs/settings', icon: Settings, label: 'Settings' },
 ];
