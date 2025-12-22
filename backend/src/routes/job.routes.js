@@ -8,4 +8,5 @@ router.get("/search", jobController.searchJobs);
 
 router.post("/:id/apply", auth, jobController.applyJob);
 
+
 module.exports = router;

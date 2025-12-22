@@ -6,6 +6,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const jobRoutes = require("./routes/job.routes");
+const employerRoutes = require("./routes/employer.routes");
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(morgan("dev"));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/employer/", employerRoutes);
 
 // Health check
 app.get("/", (req, res) => {
