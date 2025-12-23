@@ -2,11 +2,20 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 const { validatePassword } = require("../utils/password");
-const { Bird } = require("lucide-react");
 
 exports.register = async (req, res) => {
-  const { username, password, full_name, age, location, role, email, phone, birth} = req.body;
-  
+  const {
+    username,
+    password,
+    full_name,
+    age,
+    location,
+    role,
+    email,
+    phone,
+    birth,
+  } = req.body;
+
   if (!validatePassword(password)) {
     return res.status(400).json({
       message: "Password must be >=8 chars, include upper, lower and number",
@@ -21,7 +30,7 @@ exports.register = async (req, res) => {
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
     RETURNING id, username, role
     `,
-    [username, hash, full_name, age, location,role,email,phone,birth]
+    [username, hash, full_name, age, location, role, email, phone, birth]
   );
 
   // tạo profile cho candidate
@@ -30,9 +39,10 @@ exports.register = async (req, res) => {
   ]);
 
   // tạo profile cho candidate_workExperience
-  await pool.query(`INSERT INTO candidate_workexperience (userid) VALUES ($1)`, [
-    result.rows[0].id,
-  ]);
+  await pool.query(
+    `INSERT INTO candidate_workexperience (userid) VALUES ($1)`,
+    [result.rows[0].id]
+  );
 
   // tạo profile cho candidate_education
   await pool.query(`INSERT INTO candidate_education (userid) VALUES ($1)`, [
@@ -48,8 +58,6 @@ exports.register = async (req, res) => {
   await pool.query(`INSERT INTO candidate_skills (userid) VALUES ($1)`, [
     result.rows[0].id,
   ]);
-
-
 
   const token = jwt.sign(
     { userId: result.rows[0].id, role: result.rows[0].role },

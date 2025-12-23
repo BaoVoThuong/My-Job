@@ -131,5 +131,3 @@ exports.applyJob = async (req, res) => {
 
   res.json({ message: "Applied successfully" });
 };
-
-
