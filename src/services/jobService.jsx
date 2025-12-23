@@ -1,13 +1,14 @@
 // src/services/jobService.jsx
 
-import mockJobs from "../data/mockJobs";
+import { mockJobs } from "../data/mockJobs";
+
 
 /**
  * Service: Get job list
  * Dùng lại cho nhiều màn hình (Job List, Favorite Jobs, Apply Job...)
  *
  * @param {Object} params
- * @param {string} params.q
+ * @param {string} params.q - keyword search
  * @param {string} params.location
  * @param {string} params.level
  * @param {number} params.page
@@ -18,7 +19,7 @@ import mockJobs from "../data/mockJobs";
  */
 export async function getJobs(params = {}) {
   try {
-    // Clone data để tránh mutate mock
+    // Clone data để tránh mutate mock data gốc
     let jobs = [...mockJobs];
 
     /* =======================
@@ -28,35 +29,35 @@ export async function getJobs(params = {}) {
     // 1️⃣ Keyword search
     if (params.q) {
       const keyword = params.q.toLowerCase();
-      jobs = jobs.filter(job =>
+      jobs = jobs.filter((job) =>
         job.title.toLowerCase().includes(keyword)
       );
     }
 
-    // 2️⃣ Location
+    // 2️⃣ Location filter
     if (params.location) {
-      jobs = jobs.filter(job => job.location === params.location);
+      jobs = jobs.filter((job) => job.location === params.location);
     }
 
-    // 3️⃣ Level
+    // 3️⃣ Level filter
     if (params.level) {
-      jobs = jobs.filter(job => job.level === params.level);
+      jobs = jobs.filter((job) => job.level === params.level);
     }
 
-    // 4️⃣ Employment type
+    // 4️⃣ Employment type filter
     if (params.employmentType) {
       jobs = jobs.filter(
-        job => job.employmentType === params.employmentType
+        (job) => job.employmentType === params.employmentType
       );
     }
 
-    // 5️⃣ Salary range
+    // 5️⃣ Salary range filter
     if (params.salaryMin !== undefined) {
-      jobs = jobs.filter(job => job.salary >= params.salaryMin);
+      jobs = jobs.filter((job) => job.salary >= params.salaryMin);
     }
 
     if (params.salaryMax !== undefined) {
-      jobs = jobs.filter(job => job.salary <= params.salaryMax);
+      jobs = jobs.filter((job) => job.salary <= params.salaryMax);
     }
 
     /* =======================
@@ -64,7 +65,7 @@ export async function getJobs(params = {}) {
     ======================= */
 
     const page = Number(params.page) || 1;
-    const size = Number(params.size) || 10;
+    const size = Number(params.size) || 5;
 
     const startIndex = (page - 1) * size;
     const endIndex = startIndex + size;
