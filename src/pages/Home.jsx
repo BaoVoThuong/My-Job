@@ -7,7 +7,8 @@ import PopularCategory from '../components/Home/PopularCategory';
 import HowItWorks from '../components/Home/HowItWorks';
 import FeaturedJob from '../components/Home/FeaturedJob'; 
 import TopCompanies from '../components/Home/TopCompanies';
-
+import Testimonial from '../components/Home/Testimonial';
+import CTASection from '../components/Home/CTASection';
 export default function Home() {
   return (
     <main className="min-h-screen">
@@ -36,10 +37,13 @@ export default function Home() {
 
       {/* 6. Top Companies - Nền xám nhạt */}
       <TopCompanies />
+      <Testimonial />
+      <CTASection />
+      
 
       {/* FOOTER CHÂN TRANG */}
       <footer className="py-10 bg-white border-t border-gray-100 text-center text-gray-400 text-sm">
-        © 2024 MyJob - Job Portal. All rights Reserved
+        
       </footer>
     </main>
   );

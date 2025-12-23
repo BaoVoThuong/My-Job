@@ -2,7 +2,8 @@ import { NavLink } from 'react-router-dom';
 import { LayoutGrid, Briefcase, Heart, AlertCircle, Star, Settings, LogOut } from '../icons';
 
 const navItems = [
-  { to: '/jobs', icon: LayoutGrid, label: 'Overview' },
+
+  { to: '/candidate/dashboard', icon: LayoutGrid, label: 'Overview' },
   { to: '/jobs/applied-jobs', icon: Briefcase, label: 'Applied Jobs' },
   { to: '/jobs/favorite-jobs', icon: Heart, label: 'Favorite Jobs' },
   { to: '/jobs/alert-jobs', icon: AlertCircle, label: 'Job Alert', badge: '09' },
@@ -20,7 +21,8 @@ export default function Sidebar() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/dashboard'}
+              // 2. SỬA LẠI ĐIỀU KIỆN ACTIVE: Để nút Overview sáng khi đúng đường dẫn
+              end={item.to === '/candidate/dashboard'}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 lg:py-3.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                   isActive
