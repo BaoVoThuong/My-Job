@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 
 exports.getMe = async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
 
   const user = await pool.query(
     `
@@ -76,7 +76,7 @@ exports.getMe = async (req, res) => {
 };
 
 exports.getAppliedJobs = async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
 
   const result = await pool.query(
     `
@@ -96,7 +96,7 @@ exports.getAppliedJobs = async (req, res) => {
 };
 
 exports.updateMe = async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
   const {
     username,
     full_name,
