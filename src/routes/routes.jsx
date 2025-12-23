@@ -3,6 +3,8 @@ import JobAlerts from "../pages/jobs/JobAlerts";
 import DashboardLayout from "../layouts/DashboardLayout";
 import Home from "../pages/Home";
 import JobsListPage from "../pages/jobs/JobsListPage";
+import JobDetailPage from "../pages/jobs/JobDetailPage";
+
 
 
 
@@ -18,6 +20,7 @@ export const jobsRoutes = [
       { index: true, element: <JobsListPage /> },
       { path: "applied-jobs", element: <div className="flex-1 bg-gray-50 p-8">Applied Jobs</div> },
       { path: "favorite-jobs", element: <FavoriteJobs /> },
+      { path: ":jobId", element: <JobDetailPage /> },
       { path: "alert-jobs", element: <JobAlerts /> },
       { path: "job-alert", element: <div className="flex-1 bg-gray-50 p-8">Job Alert</div> },
       { path: "vip-account", element: <div className="flex-1 bg-gray-50 p-8">VIP Account</div> },

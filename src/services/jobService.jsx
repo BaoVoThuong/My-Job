@@ -2,29 +2,15 @@
 
 import { mockJobs } from "../data/mockJobs";
 
-
 /**
- * Service: Get job list
- * Dùng lại cho nhiều màn hình (Job List, Favorite Jobs, Apply Job...)
- *
- * @param {Object} params
- * @param {string} params.q - keyword search
- * @param {string} params.location
- * @param {string} params.level
- * @param {number} params.page
- * @param {number} params.size
- * @param {string} params.employmentType
- * @param {number} params.salaryMin
- * @param {number} params.salaryMax
+ * =====================================
+ * WTD-30 – Get job list
+ * GET /api/findjob
+ * =====================================
  */
 export async function getJobs(params = {}) {
   try {
-    // Clone data để tránh mutate mock data gốc
     let jobs = [...mockJobs];
-
-    /* =======================
-       FILTER SECTION
-    ======================= */
 
     // 1️⃣ Keyword search
     if (params.q) {
@@ -34,71 +20,96 @@ export async function getJobs(params = {}) {
       );
     }
 
-    // 2️⃣ Location filter
+    // 2️⃣ Location
     if (params.location) {
       jobs = jobs.filter((job) => job.location === params.location);
     }
 
-    // 3️⃣ Level filter
+    // 3️⃣ Level
     if (params.level) {
       jobs = jobs.filter((job) => job.level === params.level);
     }
 
-    // 4️⃣ Employment type filter
+    // 4️⃣ Employment type
     if (params.employmentType) {
       jobs = jobs.filter(
         (job) => job.employmentType === params.employmentType
       );
     }
 
-    // 5️⃣ Salary range filter
+    // 5️⃣ Salary range
     if (params.salaryMin !== undefined) {
-      jobs = jobs.filter((job) => job.salary >= params.salaryMin);
+      jobs = jobs.filter(
+        (job) => job.salaryMinNum >= params.salaryMin
+      );
     }
 
     if (params.salaryMax !== undefined) {
-      jobs = jobs.filter((job) => job.salary <= params.salaryMax);
+      jobs = jobs.filter(
+        (job) => job.salaryMaxNum <= params.salaryMax
+      );
     }
 
-    /* =======================
-       PAGINATION SECTION
-    ======================= */
+    // 6️⃣ Chỉ lấy job OPEN
+    jobs = jobs.filter((job) => job.status === "OPEN");
 
+    // Pagination
     const page = Number(params.page) || 1;
     const size = Number(params.size) || 5;
 
-    const startIndex = (page - 1) * size;
-    const endIndex = startIndex + size;
+    const start = (page - 1) * size;
+    const end = start + size;
 
-    const items = jobs.slice(startIndex, endIndex);
-
-    const meta = {
-      page,
-      size,
-      totalItems: jobs.length,
-      totalPages: Math.ceil(jobs.length / size),
-    };
-
-    // Giả lập response backend
     return {
-      items,
-      meta,
+      items: jobs.slice(start, end),
+      meta: {
+        page,
+        size,
+        totalItems: jobs.length,
+        totalPages: Math.ceil(jobs.length / size),
+      },
     };
   } catch (error) {
-    /* =======================
-       ERROR HANDLING (WTD-29)
-    ======================= */
-
-    // 400 error
     if (error?.status === 400) {
       throw new Error(error.message || "Bad Request");
     }
 
-    // 500 error
-    if (error?.status >= 500) {
-      throw new Error("Có lỗi xảy ra, vui lòng thử lại sau.");
+    throw new Error("Có lỗi xảy ra, vui lòng thử lại sau.");
+  }
+}
+
+/**
+ * =====================================
+ * WTD-31 – Get job detail
+ * GET /api/findjob/:jobId
+ * =====================================
+ */
+export async function getJobDetail(jobId) {
+  try {
+    const job = mockJobs.find(
+      (item) => String(item.id) === String(jobId)
+    );
+
+    // 404 – job không tồn tại hoặc không OPEN
+    if (!job || job.status !== "OPEN") {
+      const error = new Error("This job is no longer available.");
+      error.status = 404;
+      throw error;
     }
 
-    throw error;
+    // 200 OK – giống backend
+    return {
+      success: true,
+      data: job,
+      message: null,
+    };
+  } catch (error) {
+    if (error.status === 404) throw error;
+
+    const serverError = new Error(
+      "Không thể tải thông tin việc làm, vui lòng thử lại sau."
+    );
+    serverError.status = 500;
+    throw serverError;
   }
 }
