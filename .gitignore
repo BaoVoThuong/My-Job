@@ -25,6 +25,11 @@ Thumbs.db
 *.swo
 *~
 
+# AI Tools
+.claude/
+.history/
+.cursor/
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
