@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 
 exports.getJobsByUser = async (req, res) => {
-  const userid = req.user.userId;
+  const userid = req.user.id;
   const page = parseInt(req.query.page) || 1; // trang hiện tại
   const limit = parseInt(req.query.limit) || 10; // số bản ghi mỗi trang
   const offset = (page - 1) * limit;
@@ -53,7 +53,7 @@ exports.pushJob = async (req, res) => {
     active_flag,
   } = req.body;
 
-  const userid = req.user.userId;
+  const userid = req.user.id;
 
   try {
     const result = await pool.query(
@@ -93,7 +93,7 @@ exports.pushJob = async (req, res) => {
 
 exports.updateJob = async (req, res) => {
   const jobId = req.params.id;
-  const userid = req.user.userId; // từ authMiddleware
+  const userid = req.user.id; // từ authMiddleware
   const {
     title,
     description,

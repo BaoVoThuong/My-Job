@@ -24,6 +24,34 @@ exports.getAllJobs = async (req, res) => {
   }
 };
 
+exports.getJobById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `
+      SELECT *
+      FROM jobs
+      WHERE id = $1
+    `;
+    const result = await pool.query(query, [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Error fetching job by ID:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch job",
+    });
+  }
+};
+
 exports.searchJobs = async (req, res) => {
   try {
     const {
@@ -117,7 +145,7 @@ exports.searchJobs = async (req, res) => {
 };
 
 exports.applyJob = async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
   const jobId = req.params.id;
 
   await pool.query(
@@ -131,3 +159,39 @@ exports.applyJob = async (req, res) => {
 
   res.json({ message: "Applied successfully" });
 };
+
+exports.saveJob = async (req, res) => {
+  const userId = req.user.id;
+  if( !userId ) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const jobId = req.params.id;
+  await pool.query(
+    `
+    INSERT INTO candidate_job_favorites (userid, jobid) 
+    VALUES ($1, $2)
+    ON CONFLICT DO NOTHING
+    `,
+    [userId, jobId]
+  );
+  res.json({ 
+    success: true,
+    message: "Job saved successfully" 
+  });
+};
+
+exports.unsaveJob = async (req, res) => {
+  const userId = req.user.id;
+  const jobId = req.params.id;  
+  await pool.query(
+    `
+    DELETE FROM candidate_job_favorites
+    WHERE userid = $1 AND jobid = $2
+    `,
+    [userId, jobId]
+  );
+  res.json({
+    success: true,
+    message: "Job unsaved successfully" 
+  });
+}
