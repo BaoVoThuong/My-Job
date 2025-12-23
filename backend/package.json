@@ -1,14 +1,26 @@
 {
-  "name": "myjob-backend",
+  "name": "be_job_portal",
   "version": "1.0.0",
-  "description": "Backend for MyJob Online Recruitment Platform",
-  "main": "src/server.js",
+  "description": "",
+  "main": "src/app.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "jest"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
   },
-  "keywords": ["recruitment", "jobs", "api"],
+  "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.11",
+    "pg": "^8.16.3"
+  }
 }
