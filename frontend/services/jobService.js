@@ -13,7 +13,11 @@ const jobService = {
     return response.data;
   },
 
+<<<<<<< HEAD
   // Search jobs with filters (compatible with JobsListPage)
+=======
+  // Search jobs with filters
+>>>>>>> d8f4b6dd27e42e2420908d9b3678d12ab3e9cb81
   searchJobs: async (filters = {}) => {
     const params = new URLSearchParams();
 
@@ -21,13 +25,19 @@ const jobService = {
     if (filters.skill) params.append('skill', filters.skill);
     if (filters.location) params.append('location', filters.location);
     if (filters.job_type) params.append('job_type', filters.job_type);
+<<<<<<< HEAD
     if (filters.level) params.append('level', filters.level);
     if (filters.employmentType) params.append('job_type', filters.employmentType);
+=======
+>>>>>>> d8f4b6dd27e42e2420908d9b3678d12ab3e9cb81
     if (filters.min_salary) params.append('min_salary', filters.min_salary);
     if (filters.max_salary) params.append('max_salary', filters.max_salary);
     if (filters.page) params.append('page', filters.page);
     if (filters.limit) params.append('limit', filters.limit);
+<<<<<<< HEAD
     if (filters.size) params.append('limit', filters.size);
+=======
+>>>>>>> d8f4b6dd27e42e2420908d9b3678d12ab3e9cb81
 
     const response = await api.get(`/jobs/search?${params.toString()}`);
     return response.data;
@@ -52,6 +62,7 @@ const jobService = {
   },
 };
 
+<<<<<<< HEAD
 // Export named functions for compatibility with hoangvuong's code
 export async function getJobs(params = {}) {
   const response = await jobService.searchJobs(params);
@@ -77,4 +88,6 @@ export async function getJobDetail(jobId) {
   };
 }
 
+=======
+>>>>>>> d8f4b6dd27e42e2420908d9b3678d12ab3e9cb81
 export default jobService;
