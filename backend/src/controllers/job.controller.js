@@ -2,18 +2,58 @@ const pool = require("../config/db");
 
 exports.getAllJobs = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
     const query = `
-      SELECT *
-      FROM jobs
-      ORDER BY created_at DESC
+      SELECT 
+        j.id,
+        j.title,
+        j.description,
+        j.location,
+        j.salary_min,
+        j.salary_max,
+        j.job_type,
+        j.skills,
+        j.active_flag,
+        j.created_at,
+        j.updated_at,
+        c.name as company_name,
+        c.logo_url as company_logo,
+        u.full_name as employer_name
+      FROM jobs j
+      LEFT JOIN companies c ON j.company_id = c.id
+      LEFT JOIN users u ON j.employer_id = u.id
+      WHERE j.active_flag = true
+      ORDER BY j.created_at DESC
+      LIMIT $1 OFFSET $2
     `;
 
-    const result = await pool.query(query);
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM jobs j
+      WHERE j.active_flag = true
+    `;
+
+    const [result, countResult] = await Promise.all([
+      pool.query(query, [limit, offset]),
+      pool.query(countQuery)
+    ]);
+
+    const total = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(total / limit);
 
     res.status(200).json({
       success: true,
       count: result.rowCount,
       data: result.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages
+      }
     });
   } catch (error) {
     console.error("Error fetching jobs:", error);
@@ -59,6 +99,7 @@ exports.searchJobs = async (req, res) => {
       skill,
       location,
       job_type,
+      experience_level,
       min_salary,
       max_salary,
       page = 1,
@@ -92,10 +133,17 @@ exports.searchJobs = async (req, res) => {
       idx++;
     }
 
-    // Job type
+    // Job type (case-insensitive, flexible matching)
     if (job_type) {
-      conditions.push(`job_type = $${idx}`);
-      values.push(job_type);
+      conditions.push(`job_type ILIKE $${idx}`);
+      values.push(`%${job_type.replace(/\s+/g, '%')}%`);
+      idx++;
+    }
+
+    // Experience level (case-insensitive, flexible matching)
+    if (experience_level) {
+      conditions.push(`experience_level ILIKE $${idx}`);
+      values.push(`%${experience_level.replace(/\s+/g, '%')}%`);
       idx++;
     }
 
@@ -145,19 +193,59 @@ exports.searchJobs = async (req, res) => {
 };
 
 exports.applyJob = async (req, res) => {
-  const userId = req.user.id;
-  const jobId = req.params.id;
+  try {
+    const userId = req.user.id;
+    const jobId = req.params.id;
+    const { profile_id } = req.body; // For premium feature with multiple profiles
 
-  await pool.query(
-    `
-    INSERT INTO job_applications (user_id, job_id)
-    VALUES ($1, $2)
-    ON CONFLICT DO NOTHING
-    `,
-    [userId, jobId]
-  );
+    // Get user's profile (default profile if not specified)
+    let profileId = profile_id;
+    if (!profileId) {
+      const profileResult = await pool.query(
+        `SELECT id FROM candidate_profiles WHERE user_id = $1 LIMIT 1`,
+        [userId]
+      );
+      if (profileResult.rows.length > 0) {
+        profileId = profileResult.rows[0].id;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "No profile found. Please create a profile first."
+        });
+      }
+    }
 
-  res.json({ message: "Applied successfully" });
+    // Check if already applied
+    const existingApplication = await pool.query(
+      `SELECT id FROM job_applications WHERE user_id = $1 AND job_id = $2`,
+      [userId, jobId]
+    );
+
+    if (existingApplication.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already applied for this job"
+      });
+    }
+
+    // Insert application with profile_id
+    await pool.query(
+      `INSERT INTO job_applications (user_id, job_id, profile_id)
+       VALUES ($1, $2, $3)`,
+      [userId, jobId, profileId]
+    );
+
+    res.json({
+      success: true,
+      message: "Applied successfully"
+    });
+  } catch (error) {
+    console.error("Error applying for job:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to apply for job"
+    });
+  }
 };
 
 exports.saveJob = async (req, res) => {
@@ -182,7 +270,7 @@ exports.saveJob = async (req, res) => {
 
 exports.unsaveJob = async (req, res) => {
   const userId = req.user.id;
-  const jobId = req.params.id;  
+  const jobId = req.params.id;
   await pool.query(
     `
     DELETE FROM candidate_job_favorites
@@ -192,6 +280,98 @@ exports.unsaveJob = async (req, res) => {
   );
   res.json({
     success: true,
-    message: "Job unsaved successfully" 
+    message: "Job unsaved successfully"
   });
-}
+};
+
+exports.getSavedJobs = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const query = `
+      SELECT
+        j.id,
+        j.title,
+        j.description,
+        j.location,
+        j.salary_min,
+        j.salary_max,
+        j.job_type,
+        j.skills,
+        j.active_flag,
+        j.created_at,
+        j.updated_at,
+        c.name as company_name,
+        c.logo_url as company_logo,
+        u.full_name as employer_name
+      FROM candidate_job_favorites f
+      JOIN jobs j ON f.jobid = j.id
+      LEFT JOIN companies c ON j.company_id = c.id
+      LEFT JOIN users u ON j.employer_id = u.id
+      WHERE f.userid = $1 AND j.active_flag = true
+      ORDER BY f.created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
+
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM candidate_job_favorites f
+      JOIN jobs j ON f.jobid = j.id
+      WHERE f.userid = $1 AND j.active_flag = true
+    `;
+
+    const [result, countResult] = await Promise.all([
+      pool.query(query, [userId, limit, offset]),
+      pool.query(countQuery, [userId])
+    ]);
+
+    const total = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      success: true,
+      count: result.rowCount,
+      data: result.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching saved jobs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch saved jobs",
+    });
+  }
+};
+
+// Get applied job IDs for current user
+exports.getAppliedJobIds = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      `SELECT job_id FROM job_applications WHERE user_id = $1`,
+      [userId]
+    );
+
+    const jobIds = result.rows.map(row => row.job_id);
+
+    res.json({
+      success: true,
+      data: jobIds
+    });
+  } catch (error) {
+    console.error("Error fetching applied job IDs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch applied jobs"
+    });
+  }
+};

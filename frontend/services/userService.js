@@ -1,21 +1,21 @@
 import api from './api';
 
 const userService = {
-  // Get user profile
+  // Get current user profile (GET /api/users/me)
   getProfile: async () => {
-    const response = await api.get('/users/profile');
+    const response = await api.get('/users/me');
     return response.data;
   },
 
-  // Update user profile
+  // Update user profile (PUT /api/users/me)
   updateProfile: async (profileData) => {
-    const response = await api.put('/users/profile', profileData);
+    const response = await api.put('/users/me', profileData);
     return response.data;
   },
 
-  // Get user's applied jobs
+  // Get user's applied jobs (GET /api/users/me/applications)
   getAppliedJobs: async () => {
-    const response = await api.get('/users/applied-jobs');
+    const response = await api.get('/users/me/applications');
     return response.data;
   },
 

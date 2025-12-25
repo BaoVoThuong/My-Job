@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { createJobAlert } = require("./jobAlert.controller");
 
 exports.getJobsByUser = async (req, res) => {
   const userid = req.user.id;
@@ -9,7 +10,7 @@ exports.getJobsByUser = async (req, res) => {
   try {
     // Lấy tổng số job của user
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM jobs WHERE userid = $1`,
+      `SELECT COUNT(*) FROM jobs WHERE employer_id = $1`,
       [userid]
     );
     const totalJobs = parseInt(countResult.rows[0].count);
@@ -17,9 +18,9 @@ exports.getJobsByUser = async (req, res) => {
     // Lấy dữ liệu theo limit và offset
     const result = await pool.query(
       `
-      SELECT id, title, description, company_name, location, salary_min, salary_max, job_type, experience_level, skills, active_flag, userid
+      SELECT id, title, description, company_id, location, salary_min, salary_max, job_type, skills, active_flag, employer_id
       FROM jobs
-      WHERE userid = $1
+      WHERE employer_id = $1
       ORDER BY id DESC
       LIMIT $2 OFFSET $3
       `,
@@ -43,12 +44,11 @@ exports.pushJob = async (req, res) => {
   const {
     title,
     description,
-    company_name,
+    company_id,
     location,
     salary_min,
     salary_max,
     job_type,
-    experience_level,
     skills,
     active_flag,
   } = req.body;
@@ -59,19 +59,18 @@ exports.pushJob = async (req, res) => {
     const result = await pool.query(
       `
       INSERT INTO jobs
-      (title, description, company_name, location, salary_min, salary_max, job_type, experience_level, skills, active_flag,userid)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      (title, description, company_id, location, salary_min, salary_max, job_type, skills, active_flag, employer_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
       RETURNING *
       `,
       [
         title,
         description,
-        company_name,
+        company_id,
         location,
         salary_min,
         salary_max,
         job_type,
-        experience_level,
         skills,
         active_flag,
         userid,
@@ -109,21 +108,31 @@ exports.updateJob = async (req, res) => {
 
   try {
     // 1️⃣ Lấy job hiện tại
-    const jobCheck = await pool.query(`SELECT * FROM jobs WHERE id=$1`, [
-      jobId,
-    ]);
+    const jobCheck = await pool.query(
+      `SELECT j.*, c.name as company_name
+       FROM jobs j
+       LEFT JOIN companies c ON j.company_id = c.id
+       WHERE j.id=$1`,
+      [jobId]
+    );
     if (jobCheck.rows.length === 0) {
       return res.status(404).json({ message: "Job not found" });
     }
+
+    const oldJob = jobCheck.rows[0];
 
     // 2️⃣ Chỉ update những trường được gửi
     const fields = [];
     const values = [];
     let idx = 1;
 
-    if (title) {
+    // Track important changes for alert
+    const importantChanges = [];
+
+    if (title && title !== oldJob.title) {
       fields.push(`title=$${idx++}`);
       values.push(title);
+      importantChanges.push('title');
     }
     if (description) {
       fields.push(`description=$${idx++}`);
@@ -133,21 +142,25 @@ exports.updateJob = async (req, res) => {
       fields.push(`company_name=$${idx++}`);
       values.push(company_name);
     }
-    if (location) {
+    if (location && location !== oldJob.location) {
       fields.push(`location=$${idx++}`);
       values.push(location);
+      importantChanges.push('location');
     }
-    if (salary_min) {
+    if (salary_min && salary_min !== oldJob.salary_min) {
       fields.push(`salary_min=$${idx++}`);
       values.push(salary_min);
+      importantChanges.push('salary');
     }
-    if (salary_max) {
+    if (salary_max && salary_max !== oldJob.salary_max) {
       fields.push(`salary_max=$${idx++}`);
       values.push(salary_max);
+      importantChanges.push('salary');
     }
-    if (job_type) {
+    if (job_type && job_type !== oldJob.job_type) {
       fields.push(`job_type=$${idx++}`);
       values.push(job_type);
+      importantChanges.push('employment type');
     }
     if (experience_level) {
       fields.push(`experience_level=$${idx++}`);
@@ -173,6 +186,34 @@ exports.updateJob = async (req, res) => {
       `UPDATE jobs SET ${fields.join(", ")} WHERE id=$${idx} RETURNING *`,
       values
     );
+
+    // BE-JA-3: Create job alert for candidates who applied or saved this job
+    if (importantChanges.length > 0) {
+      // Get all candidates who applied or saved this job
+      const candidatesQuery = await pool.query(
+        `SELECT DISTINCT user_id
+         FROM (
+           SELECT user_id FROM job_applications WHERE job_id = $1
+           UNION
+           SELECT userid as user_id FROM candidate_job_favorites WHERE jobid = $1
+         ) AS candidates`,
+        [jobId]
+      );
+
+      const changesText = importantChanges.join(', ');
+
+      // Create alert for each candidate
+      for (const candidate of candidatesQuery.rows) {
+        await createJobAlert({
+          userId: candidate.user_id,
+          jobId: jobId,
+          applicationId: null,
+          type: "JOB_UPDATED",
+          title: `Job updated: ${oldJob.title}`,
+          message: `The job "${oldJob.title}" at ${oldJob.company_name || 'the company'} has been updated (${changesText} changed).`
+        });
+      }
+    }
 
     res.json({
       success: true,
@@ -237,30 +278,79 @@ exports.getJobApplications = async (req, res) => {
 };
 
 exports.updateApplicationStatus = async (req, res) => {
-  const { applicationId } = req.params;
-  const { status, interviewDate } = req.body;
+  try {
+    const { applicationId } = req.params;
+    const { status } = req.body;
 
-  const validStatus = ["APPROVED", "DECLINED", "INTERVIEW"];
-  if (!validStatus.includes(status)) {
-    return res.status(400).json({ message: "Invalid status" });
+    const validStatus = ["APPROVED", "DECLINED", "INTERVIEWING", "PENDING"];
+    if (!validStatus.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    // Get application details before update
+    const appQuery = await pool.query(
+      `SELECT ja.*, j.title as job_title, c.name as company_name
+       FROM job_applications ja
+       JOIN jobs j ON ja.job_id = j.id
+       LEFT JOIN companies c ON j.company_id = c.id
+       WHERE ja.id = $1`,
+      [applicationId]
+    );
+
+    if (appQuery.rows.length === 0) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    const application = appQuery.rows[0];
+
+    // Update application status
+    const result = await pool.query(
+      `UPDATE job_applications
+       SET status = $1
+       WHERE id = $2
+       RETURNING *`,
+      [status, applicationId]
+    );
+
+    // BE-JA-2: Create job alert notification
+    const statusMessages = {
+      APPROVED: {
+        type: "APPLICATION_APPROVED",
+        title: "Your application was approved",
+        message: `Your application for ${application.job_title} at ${application.company_name || 'the company'} was approved.`
+      },
+      DECLINED: {
+        type: "APPLICATION_DECLINED",
+        title: "Application status update",
+        message: `Your application for ${application.job_title} at ${application.company_name || 'the company'} was declined.`
+      },
+      INTERVIEWING: {
+        type: "APPLICATION_INTERVIEWING",
+        title: "Interview scheduled",
+        message: `You have been selected for an interview for ${application.job_title} at ${application.company_name || 'the company'}.`
+      }
+    };
+
+    if (statusMessages[status]) {
+      await createJobAlert({
+        userId: application.user_id,
+        jobId: application.job_id,
+        applicationId: applicationId,
+        type: statusMessages[status].type,
+        title: statusMessages[status].title,
+        message: statusMessages[status].message
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Application status updated",
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error("Error updating application status:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
-
-  const result = await pool.query(
-    `
-    UPDATE applications
-    SET status = $1,
-        interview_date = $2
-    WHERE id = $3
-    RETURNING *
-  `,
-    [status, status === "INTERVIEW" ? interviewDate : null, applicationId]
-  );
-
-  if (!result.rowCount) {
-    return res.status(404).json({ message: "Application not found" });
-  }
-
-  res.json({ success: true, message: "Application status updated." });
 };
 
 exports.saveCandidate = async (req, res) => {

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { NavLink, Link } from 'react-router-dom';
-import { Phone, ChevronDown, Search, Briefcase } from 'lucide-react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { Phone, ChevronDown, Search, Briefcase, User, Settings, LogOut, Bookmark } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const languages = [
   { code: 'en', name: 'English', flag: 'https://flagcdn.com/w20/us.png' },
@@ -8,20 +9,32 @@ const languages = [
 ];
 
 export default function HeaderGuest() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [langOpen, setLangOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState(languages[0]);
   const dropdownRef = useRef(null);
+  const userMenuRef = useRef(null);
 
-  // Xử lý click outside dropdown ngôn ngữ
+  // Xử lý click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setLangOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   // Style cho Link menu (Guest)
   const navLinkClass = ({ isActive }) =>
@@ -46,9 +59,10 @@ export default function HeaderGuest() {
                 <li><NavLink to="/candidate/dashboard" className={navLinkClass}>Dashboard</NavLink></li>
                 
                 <li><NavLink to="/find-job" className={navLinkClass}>Find Job</NavLink></li>
+                {user && <li><NavLink to="/saved-jobs" className={navLinkClass}>Saved Jobs</NavLink></li>}
                 <li><NavLink to="/find-employers" className={navLinkClass}>Employers</NavLink></li>
                 <li><NavLink to="/candidates" className={navLinkClass}>Candidates</NavLink></li>
-                
+
                 {/* Các chức năng User */}
                 <li><NavLink to="/job-alerts" className={navLinkClass}>Job Alerts</NavLink></li>
                 <li><NavLink to="/mock-interview" className={navLinkClass}>Interview</NavLink></li>
@@ -126,21 +140,89 @@ export default function HeaderGuest() {
           </div>
         </div>
 
-        {/* AUTH BUTTONS */}
+        {/* AUTH BUTTONS / USER MENU */}
         <div className="flex items-center gap-3">
-          <Link 
-            to="/login" 
-            className="px-5 py-2.5 text-blue-600 font-bold text-sm hover:bg-blue-50 rounded-md transition-colors"
-          >
-            Login
-          </Link>
-          
-          <Link 
-            to="/register" 
-            className="px-5 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-md shadow-md hover:bg-blue-700 transition-all hover:shadow-lg"
-          >
-            Register
-          </Link>
+          {user ? (
+            /* User Menu Dropdown */
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  {user.username?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-semibold text-gray-800">{user.username}</p>
+                  <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                </div>
+                <ChevronDown size={16} className="text-gray-400" />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-800">{user.username}</p>
+                    <p className="text-xs text-gray-500">{user.email || 'No email'}</p>
+                  </div>
+
+                  <Link
+                    to="/candidate/profile"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                  >
+                    <User size={18} />
+                    <span>My Profile</span>
+                  </Link>
+
+                  <Link
+                    to="/saved-jobs"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                  >
+                    <Bookmark size={18} />
+                    <span>Saved Jobs</span>
+                  </Link>
+
+                  <Link
+                    to="/candidate/profile/edit"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                  >
+                    <Settings size={18} />
+                    <span>Edit Profile</span>
+                  </Link>
+
+                  <div className="border-t border-gray-100 mt-2 pt-2">
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-sm text-red-600 w-full"
+                    >
+                      <LogOut size={18} />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Guest Auth Buttons */
+            <>
+              <Link
+                to="/login"
+                className="px-5 py-2.5 text-blue-600 font-bold text-sm hover:bg-blue-50 rounded-md transition-colors"
+              >
+                Login
+              </Link>
+
+              <Link
+                to="/register"
+                className="px-5 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-md shadow-md hover:bg-blue-700 transition-all hover:shadow-lg"
+              >
+                Register
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

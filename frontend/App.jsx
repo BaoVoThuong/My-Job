@@ -18,6 +18,9 @@ import CandidateDashboard from './pages/CandidateDashboard';
 import CandidateProfile from './pages/CandidateProfile'; // Trang xem hồ sơ (Dùng chung cho cả mình và người khác)
 import CandidateProfileEdit from './pages/CandidateProfileEdit'; // Trang sửa hồ sơ (Modal hoặc trang riêng)
 import JobAlerts from './pages/jobs/JobAlerts';
+import JobsListPage from './pages/jobs/JobsListPage'; // Trang tìm việc
+import JobDetailPage from './pages/jobs/JobDetailPage'; // Trang chi tiết job
+import SavedJobs from './pages/jobs/SavedJobs'; // Trang việc làm đã lưu
 import TestAPI from './pages/TestAPI'; // Test BE-FE Connection 
 
 // --- 4. ROUTES CONFIG (Nếu có dùng file config cũ) ---
@@ -71,6 +74,18 @@ export default function App() {
           <Route path="/dashboard" element={<Navigate to="/candidate/dashboard" replace />} />
           <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
 
+          {/* Employer Dashboard - Placeholder for now */}
+          <Route path="/employer/dashboard" element={
+            <div className="min-h-screen bg-gray-50 p-10">
+              <div className="max-w-6xl mx-auto">
+                <h1 className="text-3xl font-bold text-gray-800 mb-10">Employer Dashboard</h1>
+                <div className="bg-white p-10 rounded-2xl shadow-sm">
+                  <p className="text-gray-500">Welcome to Employer Dashboard! Manage your job postings here.</p>
+                </div>
+              </div>
+            </div>
+          } />
+
           {/* --- DANH SÁCH ỨNG VIÊN --- */}
           <Route path="/candidates" element={<Candidates />} />
 
@@ -88,9 +103,11 @@ export default function App() {
 
           {/* --- CÁC CHỨC NĂNG KHÁC --- */}
           <Route path="/job-alerts" element={<JobAlerts />} />
+          <Route path="/find-job" element={<JobsListPage />} />
+          <Route path="/saved-jobs" element={<SavedJobs />} />
+          <Route path="/job/:id" element={<JobDetailPage />} />
 
           {/* --- PLACEHOLDER (Các trang chưa có file) --- */}
-          <Route path="/find-job" element={<div className="p-20 text-center text-3xl font-bold text-blue-600">Trang Tìm Việc (Find Job)</div>} />
           <Route path="/find-employers" element={<div className="p-20 text-center text-3xl font-bold text-blue-600">Trang Nhà Tuyển Dụng (Employers)</div>} />
           <Route path="/mock-interview" element={<div className="p-20 text-center text-3xl font-bold text-purple-600">Phỏng Vấn Thử AI (Mock Interview)</div>} />
           <Route path="/take-certificate" element={<div className="p-20 text-center text-3xl font-bold text-orange-600">Thi Chứng Chỉ (Take Certificate)</div>} />

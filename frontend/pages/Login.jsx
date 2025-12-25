@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Briefcase, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: '',
     rememberMe: false,
   });
@@ -17,17 +21,32 @@ const Login = () => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
     });
+    setError(''); // Clear error when user types
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // GIẢ LẬP ĐĂNG NHẬP
-    if (formData.email && formData.password) {
-      console.log("Đăng nhập với:", formData);
-      // Lưu token vào localStorage để Layout nhận biết đã login
-      localStorage.setItem('accessToken', 'fake-token-123');
-      // Chuyển hướng về trang chủ
-      navigate('/home');
+    setLoading(true);
+    setError('');
+
+    try {
+      const data = await login({
+        username: formData.username,
+        password: formData.password,
+      });
+      // Navigate to appropriate dashboard based on user role
+      if (data.user.role === 'employer') {
+        navigate('/employer/dashboard');
+      } else if (data.user.role === 'candidate') {
+        navigate('/candidate/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,27 +70,36 @@ const Login = () => {
           </p>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Form Fields */}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <input 
-              type="email" 
-              name="email"
-              placeholder="Email address" 
+            <input
+              type="text"
+              name="username"
+              placeholder="Username"
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-all text-sm"
               required
               onChange={handleChange}
+              value={formData.username}
             />
           </div>
 
           <div className="relative">
-            <input 
+            <input
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="Password" 
+              placeholder="Password"
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-all text-sm"
               required
               onChange={handleChange}
+              value={formData.password}
             />
             <button 
               type="button" 
@@ -102,12 +130,15 @@ const Login = () => {
           </div>
 
           {/* Submit Button */}
-          <button 
-            type="submit" 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
           >
-            Sign In 
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            {loading ? 'Signing in...' : 'Sign In'}
+            {!loading && (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            )}
           </button>
         </form>
 

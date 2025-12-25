@@ -1,41 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Briefcase, Globe, Linkedin, Github, Edit, Calendar } from 'lucide-react';
+import userService from '../services/userService';
 
 // 1. Import Modal Component
-import CandidateProfileEditModal from '../components/CandidateProfileEditModal'; 
+import CandidateProfileEditModal from '../components/CandidateProfileEditModal';
 
 const CandidateProfile = () => {
   // 2. State to toggle Modal
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock Profile Data (Display Only)
-  const profileData = {
-    avatar: "https://github.com/shadcn.png",
-    fullName: "Nguyen Van A",
-    email: "nguyencsehcmut@gmail.com",
-    phone: "(+84) 909 123 456",
-    address: "Ho Chi Minh City, Vietnam",
-    jobTitle: "Senior Frontend Developer",
-    website: "https://my-portfolio.com",
-    linkedin: "linkedin.com/in/nguyenvana",
-    github: "github.com/nguyenvana",
-    bio: "I am a passionate developer with over 5 years of experience working with ReactJS and NodeJS. I love building beautiful user interfaces and optimizing user experience for large-scale applications.",
-    experience: "5 Years",
-    skills: "ReactJS, TailwindCSS, Node.js, MongoDB, TypeScript"
+  // Fetch profile data from API
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await userService.getProfile();
+      if (response.success) {
+        setProfileData(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError('Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 max-w-5xl mx-auto font-sans flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 max-w-5xl mx-auto font-sans flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // No profile data
+  if (!profileData) {
+    return (
+      <div className="p-6 max-w-5xl mx-auto font-sans flex items-center justify-center min-h-screen">
+        <p className="text-gray-500">No profile data found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto font-sans">
-      
+
       {/* Page Title */}
       <div className="mb-8 flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
           <p className="text-gray-500 text-sm mt-1">Manage your personal information and how employers see your profile.</p>
         </div>
-        
+
         {/* 3. Open Modal Button */}
-        <button 
+        <button
           onClick={() => setIsEditModalOpen(true)}
           className="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 shadow-sm flex items-center gap-2 transition-all"
         >
@@ -53,18 +99,16 @@ const CandidateProfile = () => {
           <div className="flex flex-col md:flex-row items-start md:items-end gap-6 mb-10">
             {/* Avatar */}
             <div className="relative">
-              <img 
-                src={profileData.avatar} 
-                alt="Avatar" 
-                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md bg-white" 
-              />
+              <div className="w-32 h-32 rounded-full bg-blue-600 flex items-center justify-center border-4 border-white shadow-md text-white text-4xl font-bold">
+                {profileData.fullName?.[0]?.toUpperCase() || 'U'}
+              </div>
             </div>
-            
+
             <div className="flex-1 mb-2">
-              <h2 className="text-3xl font-bold text-gray-900">{profileData.fullName}</h2>
+              <h2 className="text-3xl font-bold text-gray-900">{profileData.fullName || 'No Name'}</h2>
               <p className="text-gray-500 font-medium flex items-center gap-2 mt-1">
-                <Briefcase size={16} className="text-blue-600" /> 
-                {profileData.jobTitle}
+                <Briefcase size={16} className="text-blue-600" />
+                {profileData.headline || 'No headline'}
               </p>
             </div>
           </div>
@@ -81,57 +125,98 @@ const CandidateProfile = () => {
                 <div className="space-y-4">
                   <InfoItem icon={Mail} label="Email" value={profileData.email} />
                   <InfoItem icon={Phone} label="Phone" value={profileData.phone} />
-                  <InfoItem icon={MapPin} label="Location" value={profileData.address} />
-                  <InfoItem icon={Globe} label="Website" value={profileData.website} isLink />
                 </div>
               </div>
 
-              {/* Social Box */}
-              <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
-                <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 border-b border-gray-200 pb-2">Social Media</h3>
-                <div className="space-y-4">
-                  <InfoItem icon={Linkedin} label="LinkedIn" value={profileData.linkedin} isLink />
-                  <InfoItem icon={Github} label="GitHub" value={profileData.github} isLink />
+              {/* CV Section */}
+              {profileData.cv && (
+                <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                  <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 border-b border-gray-200 pb-2">CV/Resume</h3>
+                  <a
+                    href={profileData.cv}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline text-sm font-semibold flex items-center gap-2"
+                  >
+                    <Globe size={16} />
+                    View CV
+                  </a>
                 </div>
-              </div>
+              )}
 
             </div>
 
-            {/* Right Column: Bio & Skills */}
+            {/* Right Column: Summary & Skills */}
             <div className="md:col-span-2 space-y-8">
-              
-              {/* Biography */}
+
+              {/* Summary */}
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Biography</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-3">Summary</h3>
                 <p className="text-gray-600 leading-relaxed bg-white p-4 border border-gray-100 rounded-lg">
-                  {profileData.bio}
+                  {profileData.summary || 'No summary provided'}
                 </p>
               </div>
 
-              {/* Experience & Skills Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="bg-blue-50 p-5 rounded-xl border border-blue-100">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar size={18} className="text-blue-600" />
-                    <h3 className="font-bold text-gray-900">Experience</h3>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-700">{profileData.experience}</p>
+              {/* Skills */}
+              <div className="bg-purple-50 p-5 rounded-xl border border-purple-100">
+                <div className="flex items-center gap-2 mb-4">
+                  <Briefcase size={18} className="text-purple-600" />
+                  <h3 className="font-bold text-gray-900">Skills</h3>
                 </div>
-
-                <div className="bg-purple-50 p-5 rounded-xl border border-purple-100">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Briefcase size={18} className="text-purple-600" />
-                    <h3 className="font-bold text-gray-900">Key Skills</h3>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {profileData.skills.split(',').map((skill, index) => (
-                      <span key={index} className="px-2 py-1 bg-white text-purple-700 text-xs font-bold rounded border border-purple-100 shadow-sm">
-                        {skill.trim()}
+                <div className="flex flex-wrap gap-2">
+                  {profileData.skills && profileData.skills.length > 0 ? (
+                    profileData.skills.map((skill, index) => (
+                      <span key={index} className="px-3 py-1.5 bg-white text-purple-700 text-sm font-semibold rounded-lg border border-purple-200 shadow-sm">
+                        {skill}
                       </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 text-sm">No skills added</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Work Experience */}
+              {profileData.workExperience && profileData.workExperience.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">Work Experience</h3>
+                  <div className="space-y-4">
+                    {profileData.workExperience.map((work, index) => (
+                      <div key={index} className="bg-white p-4 border border-gray-100 rounded-lg">
+                        <h4 className="font-bold text-gray-900">{work.position}</h4>
+                        <p className="text-blue-600 text-sm font-semibold">{work.company}</p>
+                        <p className="text-gray-500 text-xs mt-1">
+                          {work.startDate} - {work.endDate || 'Present'}
+                        </p>
+                        {work.description && (
+                          <p className="text-gray-600 text-sm mt-2">{work.description}</p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Education */}
+              {profileData.education && profileData.education.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">Education</h3>
+                  <div className="space-y-4">
+                    {profileData.education.map((edu, index) => (
+                      <div key={index} className="bg-white p-4 border border-gray-100 rounded-lg">
+                        <h4 className="font-bold text-gray-900">{edu.school}</h4>
+                        <p className="text-blue-600 text-sm font-semibold">{edu.degree}</p>
+                        {edu.GPA && (
+                          <p className="text-gray-600 text-sm">GPA: {edu.GPA}</p>
+                        )}
+                        <p className="text-gray-500 text-xs mt-1">
+                          {edu.startDate} - {edu.endDate || 'Present'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
           </div>
@@ -140,9 +225,10 @@ const CandidateProfile = () => {
       </div>
 
       {/* 4. Embed Edit Modal */}
-      <CandidateProfileEditModal 
-        isOpen={isEditModalOpen} 
-        onClose={() => setIsEditModalOpen(false)} 
+      <CandidateProfileEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSuccess={() => fetchProfile()}
       />
 
     </div>

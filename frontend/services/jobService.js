@@ -34,8 +34,10 @@ const jobService = {
   },
 
   // Apply for a job
-  applyJob: async (jobId) => {
-    const response = await api.post(`/jobs/${jobId}/apply`);
+  applyJob: async (jobId, profileId = null) => {
+    const response = await api.post(`/jobs/${jobId}/apply`, {
+      profile_id: profileId
+    });
     return response.data;
   },
 
@@ -50,22 +52,65 @@ const jobService = {
     const response = await api.delete(`/jobs/saved/${jobId}`);
     return response.data;
   },
+
+  // Get saved jobs
+  getSavedJobs: async (page = 1, limit = 10) => {
+    const response = await api.get(`/jobs/saved?page=${page}&limit=${limit}`);
+    return response.data;
+  },
+
+  // Get applied job IDs
+  getAppliedJobIds: async () => {
+    const response = await api.get('/jobs/applied-ids');
+    return response.data;
+  }
 };
 
 // Export named functions for compatibility with hoangvuong's code
 export async function getJobs(params = {}) {
-  const response = await jobService.searchJobs(params);
+  console.log('getJobs called with params:', params);
 
-  // Transform API response to match expected format
-  return {
-    items: response.data || [],
-    meta: response.meta || {
-      page: params.page || 1,
-      size: params.size || 10,
-      totalItems: response.count || 0,
-      totalPages: Math.ceil((response.count || 0) / (params.size || 10)),
-    },
-  };
+  try {
+    let response;
+
+    // If có filters thì dùng searchJobs, không thì dùng getAllJobs
+    const hasFilters = params.q || params.location || params.job_type || params.experience_level || params.min_salary || params.max_salary || params.skill;
+
+    if (hasFilters) {
+      console.log('Using searchJobs API with filters');
+      response = await jobService.searchJobs(params);
+      console.log('searchJobs response:', response);
+
+      // searchJobs returns { meta, data }
+      return {
+        items: response.data || [],
+        meta: {
+          page: response.meta?.page || params.page || 1,
+          size: response.meta?.limit || params.size || 10,
+          totalItems: response.meta?.count || 0,
+          totalPages: Math.ceil((response.meta?.count || 0) / (response.meta?.limit || params.size || 10)),
+        },
+      };
+    } else {
+      console.log('Using getAllJobs API');
+      response = await jobService.getAllJobs();
+      console.log('getAllJobs response:', response);
+
+      // getAllJobs returns { success, count, data, pagination }
+      return {
+        items: response.data || [],
+        meta: {
+          page: params.page || 1,
+          size: params.size || 10,
+          totalItems: response.count || response.data?.length || 0,
+          totalPages: response.pagination?.totalPages || Math.ceil((response.count || response.data?.length || 0) / (params.size || 10)),
+        },
+      };
+    }
+  } catch (error) {
+    console.error('getJobs error:', error);
+    throw error;
+  }
 }
 
 export async function getJobDetail(jobId) {

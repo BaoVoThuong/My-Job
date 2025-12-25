@@ -8,12 +8,18 @@ router.get("/", jobController.getAllJobs);
 
 router.get("/search", jobController.searchJobs);
 
-router.get("/:id", jobController.getJobById);
+// IMPORTANT: Specific routes must come BEFORE dynamic routes like /:id
+router.get("/saved", auth, checkRole("candidate"), jobController.getSavedJobs);
 
-router.post("/:id/apply", auth, jobController.applyJob);
+router.get("/applied-ids", auth, checkRole("candidate"), jobController.getAppliedJobIds);
 
 router.post("/saved/:id", auth, checkRole("candidate"), jobController.saveJob);
 
 router.delete("/saved/:id", auth, checkRole("candidate"), jobController.unsaveJob);
+
+// Dynamic route /:id must come AFTER all specific routes
+router.get("/:id", jobController.getJobById);
+
+router.post("/:id/apply", auth, jobController.applyJob);
 
 module.exports = router;

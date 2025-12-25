@@ -1,11 +1,25 @@
 const { Pool } = require("pg");
 const path = require("path");
-require("dotenv").config({ path: path.resolve(__dirname, '../../.env') }); // adjust path to your .env
+
+const envPath = path.resolve(__dirname, '../../../.env');
+require("dotenv").config({ path: envPath });
+
+// Parse DATABASE_URL manually
+const dbUrl = process.env.DATABASE_URL;
+if (!dbUrl) {
+  console.error('❌ DATABASE_URL not found in environment variables');
+  process.exit(1);
+}
+
+const url = new URL(dbUrl);
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  host: url.hostname,
+  port: url.port,
+  database: url.pathname.slice(1), // remove leading /
+  user: url.username,
+  password: url.password,
   ssl: {
-    require: true,
     rejectUnauthorized: false,
   },
 });

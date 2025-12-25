@@ -1,7 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, '../../.env') });
 
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
@@ -9,6 +10,7 @@ const jobRoutes = require("./routes/job.routes");
 const employerRoutes = require("./routes/employer.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const subscriptionRoutes = require("./routes/subscription.routes");
+const jobAlertRoutes = require("./routes/jobAlert.routes");
 
 const app = express();
 
@@ -23,6 +25,7 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/employer/", employerRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/candidate/job-alerts", jobAlertRoutes);
 
 // Health check
 app.get("/", (req, res) => {
