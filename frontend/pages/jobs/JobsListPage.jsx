@@ -27,14 +27,14 @@ function AdvanceFilterModal({ isOpen, onClose, filters, setFilters, onApply }) {
   if (!isOpen) return null;
 
   const salaryRanges = [
-    { label: '$50 - $1000', min: 50, max: 1000 },
-    { label: '$1000 - $2000', min: 1000, max: 2000 },
-    { label: '$3000 - $4000', min: 3000, max: 4000 },
-    { label: '$4000 - $6000', min: 4000, max: 6000 },
-    { label: '$6000 - $8000', min: 6000, max: 8000 },
-    { label: '$8000 - $10000', min: 8000, max: 10000 },
-    { label: '$10000 - $15000', min: 10000, max: 15000 },
-    { label: '$15000+', min: 15000, max: null },
+    { label: '100K - 1M VND', min: 100, max: 1000 },
+    { label: '1M - 2M VND', min: 1000, max: 2000 },
+    { label: '2M - 5M VND', min: 2000, max: 5000 },
+    { label: '5M - 10M VND', min: 5000, max: 10000 },
+    { label: '10M - 15M VND', min: 10000, max: 15000 },
+    { label: '15M - 20M VND', min: 15000, max: 20000 },
+    { label: '20M - 30M VND', min: 20000, max: 30000 },
+    { label: '30M+ VND', min: 30000, max: null },
   ];
 
   const handleApply = () => {
@@ -123,7 +123,7 @@ function AdvanceFilterModal({ isOpen, onClose, filters, setFilters, onApply }) {
           <div>
             <h3 className="font-semibold mb-3">Education</h3>
             <div className="space-y-2">
-              {['All', 'High School', 'Intermediate', 'Graduation', 'Master Degree', 'Bachelor Degree'].map((edu) => (
+              {['All', 'Currently Studying', 'Bachelor Degree', 'Master Degree', 'PhD Degree'].map((edu) => (
                 <label key={edu} className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"

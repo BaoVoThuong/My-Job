@@ -1,52 +1,326 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import jobAlertService from '../../services/jobAlertService';
+import { useState } from 'react';
+import { Bell, BellRing, Clock, MapPin, DollarSign, Building2, Filter, Search, X, CheckCircle, Trash2 } from 'lucide-react';
 
 export default function JobAlerts() {
-  const navigate = useNavigate();
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchAlerts = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await jobAlertService.getJobAlerts(
-        currentPage,
-        10,
-        showOnlyUnread
-      );
-
-      setAlerts(response.data.items || []);
-      setTotalPages(response.data.totalPages || 1);
-    } catch (err) {
-      console.error("Error fetching job alerts:", err);
-      setError("Failed to load job alerts");
-    } finally {
-      setLoading(false);
+  // Mock data for job alerts
+  const mockAlerts = [
+    {
+      id: 1,
+      title: "New Frontend Developer position at TechCorp",
+      company: "TechCorp Vietnam",
+      location: "Ho Chi Minh City",
+      salary: "25,000,000 - 35,000,000 VND",
+      type: "Full-time",
+      isRead: false,
+      createdAt: "2024-12-25T10:30:00Z",
+      jobId: 1,
+      description: "Perfect match for your React.js skills preference"
+    },
+    {
+      id: 2,
+      title: "Senior React Developer at StartupXYZ",
+      company: "StartupXYZ",
+      location: "Ha Noi",
+      salary: "30,000,000 - 40,000,000 VND",
+      type: "Full-time",
+      isRead: false,
+      createdAt: "2024-12-25T09:15:00Z",
+      jobId: 2,
+      description: "Matches your experience level and tech stack"
+    },
+    {
+      id: 3,
+      title: "UI/UX Developer at DesignStudio",
+      company: "DesignStudio Co.",
+      location: "Da Nang",
+      salary: "20,000,000 - 28,000,000 VND",
+      type: "Full-time",
+      isRead: true,
+      createdAt: "2024-12-24T16:45:00Z",
+      jobId: 3,
+      description: "New job matching your frontend skills"
+    },
+    {
+      id: 4,
+      title: "JavaScript Developer at WebTech",
+      company: "WebTech Solutions",
+      location: "Ho Chi Minh City",
+      salary: "22,000,000 - 32,000,000 VND",
+      type: "Contract",
+      isRead: true,
+      createdAt: "2024-12-24T14:20:00Z",
+      jobId: 4,
+      description: "Remote opportunity matching your preferences"
+    },
+    {
+      id: 5,
+      title: "Full-Stack Developer at InnovateLab",
+      company: "InnovateLab",
+      location: "Remote",
+      salary: "28,000,000 - 38,000,000 VND",
+      type: "Full-time",
+      isRead: false,
+      createdAt: "2024-12-24T11:30:00Z",
+      jobId: 5,
+      description: "Great opportunity for Node.js and React experience"
     }
-  }, [currentPage, showOnlyUnread]);
+  ];
 
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const response = await jobAlertService.getUnreadCount();
-      setUnreadCount(response.data.unreadCount || 0);
-    } catch (err) {
-      console.error("Error fetching unread count:", err);
-    }
-  }, []);
+  const filteredAlerts = mockAlerts.filter(alert => {
+    const matchesSearch = alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         alert.company.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesReadFilter = showOnlyUnread ? !alert.isRead : true;
+    return matchesSearch && matchesReadFilter;
+  });
 
-  useEffect(() => {
-    fetchAlerts();
-    fetchUnreadCount();
-  }, [fetchAlerts, fetchUnreadCount]);
+  const unreadCount = mockAlerts.filter(alert => !alert.isRead).length;
+
+  const formatTimeAgo = (dateString) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    return `${Math.floor(diffInHours / 24)} days ago`;
+  };
+
+  const AlertCard = ({ alert }) => (
+    <div className={`border rounded-lg p-6 transition-all hover:shadow-md cursor-pointer ${
+      alert.isRead ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'
+    }`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4 flex-1">
+          <div className={`mt-1 ${alert.isRead ? 'text-gray-400' : 'text-blue-500'}`}>
+            {alert.isRead ? <Bell size={20} /> : <BellRing size={20} />}
+          </div>
+          
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className={`text-lg font-semibold ${alert.isRead ? 'text-gray-700' : 'text-gray-900'}`}>
+                {alert.title}
+              </h3>
+              {!alert.isRead && (
+                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              )}
+            </div>
+            
+            <p className="text-gray-600 text-sm mb-3">{alert.description}</p>
+            
+            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+              <div className="flex items-center gap-1">
+                <Building2 size={14} />
+                <span>{alert.company}</span>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <MapPin size={14} />
+                <span>{alert.location}</span>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <DollarSign size={14} />
+                <span>{alert.salary}</span>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <Clock size={14} />
+                <span>{formatTimeAgo(alert.createdAt)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 ml-4">
+          {!alert.isRead && (
+            <button className="text-green-500 hover:text-green-600 p-1" title="Mark as read">
+              <CheckCircle size={18} />
+            </button>
+          )}
+          <button className="text-red-500 hover:text-red-600 p-1" title="Delete alert">
+            <Trash2 size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Job Alerts</h1>
+              <p className="text-gray-600">Stay updated with new job opportunities that match your preferences</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                {unreadCount} unread
+              </div>
+            </div>
+          </div>
+          
+          {/* Search and Filter */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search alerts..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showOnlyUnread}
+                  onChange={(e) => setShowOnlyUnread(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Show only unread</span>
+              </label>
+              
+              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <Filter size={16} />
+                Manage Alerts
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Bell className="text-blue-600" size={24} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{mockAlerts.length}</p>
+                <p className="text-gray-600 text-sm">Total Alerts</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <BellRing className="text-green-600" size={24} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{unreadCount}</p>
+                <p className="text-gray-600 text-sm">Unread</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Clock className="text-purple-600" size={24} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">3</p>
+                <p className="text-gray-600 text-sm">Today</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Building2 className="text-orange-600" size={24} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">5</p>
+                <p className="text-gray-600 text-sm">Companies</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Alerts List */}
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Recent Alerts</h2>
+              {unreadCount > 0 && (
+                <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                  Mark all as read
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="p-6">
+            {filteredAlerts.length === 0 ? (
+              <div className="text-center py-12">
+                <Bell className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No alerts found</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {searchTerm ? 'Try adjusting your search terms.' : 'Set up job alerts to get notified about new opportunities.'}
+                </p>
+                {!searchTerm && (
+                  <div className="mt-6">
+                    <button className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                      Create Job Alert
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredAlerts.map((alert) => (
+                  <AlertCard key={alert.id} alert={alert} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Pagination */}
+        {filteredAlerts.length > 0 && (
+          <div className="mt-6 flex justify-center">
+            <nav className="flex items-center gap-2">
+              <button className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Previous
+              </button>
+              <button className="px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md">
+                1
+              </button>
+              <button className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                2
+              </button>
+              <button className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                3
+              </button>
+              <button className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                Next
+              </button>
+            </nav>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
   const handleMarkAsRead = async (alertId) => {
     try {
@@ -83,6 +357,39 @@ export default function JobAlerts() {
 
     if (alert.jobId) {
       navigate(`/job/${alert.jobId}`);
+    }
+  };
+
+  const handleDeleteAlert = async (alertId, e) => {
+    e.stopPropagation();
+
+    if (window.confirm('Are you sure you want to delete this alert?')) {
+      try {
+        await jobAlertService.deleteAlert(alertId);
+        fetchAlerts();
+        fetchUnreadCount();
+      } catch (err) {
+        console.error("Error deleting alert:", err);
+      }
+    }
+  };
+
+  const handleDeleteAllRead = async () => {
+    const hasReadAlerts = alerts.some(alert => alert.readAt);
+
+    if (!hasReadAlerts) {
+      alert('No read alerts to delete');
+      return;
+    }
+
+    if (window.confirm('Are you sure you want to delete all read alerts?')) {
+      try {
+        await jobAlertService.deleteAllReadAlerts();
+        fetchAlerts();
+        fetchUnreadCount();
+      } catch (err) {
+        console.error("Error deleting read alerts:", err);
+      }
     }
   };
 
@@ -186,6 +493,15 @@ export default function JobAlerts() {
                 Mark all as read
               </button>
             )}
+
+            {alerts.some(alert => alert.readAt) && (
+              <button
+                onClick={handleDeleteAllRead}
+                className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                Delete all read
+              </button>
+            )}
           </div>
         </div>
 
@@ -218,15 +534,17 @@ export default function JobAlerts() {
             {alerts.map((alert) => (
               <div
                 key={alert.id}
-                onClick={() => handleAlertClick(alert)}
-                className={`bg-white rounded-lg p-4 border hover:shadow-lg transition-all cursor-pointer ${
+                className={`bg-white rounded-lg p-4 border hover:shadow-lg transition-all ${
                   !alert.readAt ? 'border-l-4 border-l-blue-600 bg-blue-50' : ''
                 }`}
               >
                 <div className="flex items-start gap-4">
                   {getAlertIcon(alert.type)}
 
-                  <div className="flex-1">
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() => handleAlertClick(alert)}
+                  >
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <h3 className="font-semibold text-gray-900">{alert.title}</h3>
@@ -251,6 +569,16 @@ export default function JobAlerts() {
                       )}
                     </div>
                   </div>
+
+                  <button
+                    onClick={(e) => handleDeleteAlert(alert.id, e)}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete alert"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             ))}

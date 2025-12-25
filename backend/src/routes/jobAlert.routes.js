@@ -19,4 +19,13 @@ router.post("/:alertId/read", jobAlertController.markAlertAsRead);
 // BE-JA-5: Mark multiple alerts as read
 router.post("/read-all", jobAlertController.markAlertsAsRead);
 
+// Delete single alert
+router.delete("/:alertId", jobAlertController.deleteJobAlert);
+
+// Delete multiple alerts
+router.post("/delete-multiple", jobAlertController.deleteMultipleAlerts);
+
+// Delete all read alerts
+router.delete("/read/all", jobAlertController.deleteAllReadAlerts);
+
 module.exports = router;

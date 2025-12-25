@@ -5,6 +5,7 @@ const db = require("../config/db");
 exports.createMomoPayment = async (req, res) => {
   try {
     const userId = req.user.id;
+    const userRole = req.user.role;
     const { plan_id } = req.body;
 
     // 1️⃣ Get plan
@@ -28,7 +29,13 @@ exports.createMomoPayment = async (req, res) => {
 
     const order = orderRes.rows[0];
 
-    // 3️⃣ Build MoMo payload
+    // 3️⃣ Determine return URL based on user role
+    const baseReturnUrl = process.env.MOMO_RETURN_URL.replace('/payment-success', '');
+    const returnUrl = userRole === 'employer'
+      ? `${baseReturnUrl}/employer/payment-success`
+      : `${baseReturnUrl}/candidate/payment-success`;
+
+    // 4️⃣ Build MoMo payload
     const orderId = `ORDER_${order.id}_${Date.now()}`;
     const requestId = `REQ_${Date.now()}`;
 
@@ -45,7 +52,7 @@ exports.createMomoPayment = async (req, res) => {
       `&orderId=${orderId}` +
       `&orderInfo=${orderInfo}` +
       `&partnerCode=${process.env.MOMO_PARTNER_CODE}` +
-      `&redirectUrl=${process.env.MOMO_RETURN_URL}` +
+      `&redirectUrl=${returnUrl}` +
       `&requestId=${requestId}` +
       `&requestType=${requestType}`;
 
@@ -61,7 +68,7 @@ exports.createMomoPayment = async (req, res) => {
       amount,
       orderId,
       orderInfo,
-      redirectUrl: process.env.MOMO_RETURN_URL,
+      redirectUrl: returnUrl,
       ipnUrl: process.env.MOMO_NOTIFY_URL,
       extraData,
       requestType,
@@ -84,6 +91,50 @@ exports.createMomoPayment = async (req, res) => {
       message: "Create MoMo payment failed",
       error: err.response?.data || err.message,
     });
+  }
+};
+
+// Simulate payment completion for sandbox testing
+exports.simulatePaymentSuccess = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ message: "orderId is required" });
+    }
+
+    // Extract order DB ID from orderId format: ORDER_7_1766668802890
+    const orderIdParts = orderId.split("_");
+    if (orderIdParts.length < 2) {
+      return res.status(400).json({ message: "Invalid orderId format" });
+    }
+
+    const orderDbId = orderIdParts[1];
+
+    // Simulate IPN callback
+    const ipnPayload = {
+      partnerCode: 'MOMO',
+      orderId: orderId,
+      requestId: `REQ_${Date.now()}`,
+      amount: '100000',
+      orderInfo: 'Upgrade subscription',
+      orderType: 'momo_wallet',
+      transId: `SIMULATED_${Date.now()}`,
+      resultCode: 0,
+      message: 'Successful (Simulated)',
+      payType: 'qr',
+      responseTime: Date.now(),
+      extraData: '',
+      signature: 'simulated_signature'
+    };
+
+    // Call IPN handler internally
+    req.body = ipnPayload;
+    await exports.momoIPN(req, res);
+
+  } catch (error) {
+    console.error("Simulate payment error:", error);
+    res.status(500).json({ message: "Simulation failed", error: error.message });
   }
 };
 
@@ -163,6 +214,33 @@ exports.momoIPN = async (req, res) => {
        VALUES ($1, $2, $3, $4)`,
       [order.user_id, plan.id, startDate, endDate]
     );
+
+    // 7️⃣ Add job quota for employer
+    if (plan.max_job_posts && plan.max_job_posts > 0) {
+      const quotaCheck = await db.query(
+        `SELECT * FROM employer_job_quotas WHERE user_id = $1`,
+        [order.user_id]
+      );
+
+      if (quotaCheck.rows.length > 0) {
+        // Update existing quota
+        await db.query(
+          `UPDATE employer_job_quotas
+           SET total_quota = total_quota + $1,
+               remaining_quota = remaining_quota + $1,
+               last_updated = CURRENT_TIMESTAMP
+           WHERE user_id = $2`,
+          [plan.max_job_posts, order.user_id]
+        );
+      } else {
+        // Create new quota
+        await db.query(
+          `INSERT INTO employer_job_quotas (user_id, total_quota, used_quota, remaining_quota)
+           VALUES ($1, $2, 0, $2)`,
+          [order.user_id, plan.max_job_posts]
+        );
+      }
+    }
 
     console.log("Payment success for order:", orderDbId);
     res.json({ message: "Payment success" });

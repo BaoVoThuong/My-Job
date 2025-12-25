@@ -5,9 +5,10 @@ exports.getAllJobs = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const userId = req.user?.id; // May be null if not logged in
 
     const query = `
-      SELECT 
+      SELECT
         j.id,
         j.title,
         j.description,
@@ -21,10 +22,14 @@ exports.getAllJobs = async (req, res) => {
         j.updated_at,
         c.name as company_name,
         c.logo_url as company_logo,
-        u.full_name as employer_name
+        u.full_name as employer_name,
+        CASE WHEN ja.id IS NOT NULL THEN true ELSE false END as is_applied,
+        CASE WHEN sj.id IS NOT NULL THEN true ELSE false END as is_saved
       FROM jobs j
       LEFT JOIN companies c ON j.company_id = c.id
       LEFT JOIN users u ON j.employer_id = u.id
+      LEFT JOIN job_applications ja ON ja.job_id = j.id AND ja.user_id = $3
+      LEFT JOIN saved_jobs sj ON sj.job_id = j.id AND sj.user_id = $3
       WHERE j.active_flag = true
       ORDER BY j.created_at DESC
       LIMIT $1 OFFSET $2
@@ -37,7 +42,7 @@ exports.getAllJobs = async (req, res) => {
     `;
 
     const [result, countResult] = await Promise.all([
-      pool.query(query, [limit, offset]),
+      pool.query(query, [limit, offset, userId]),
       pool.query(countQuery)
     ]);
 
@@ -67,12 +72,19 @@ exports.getAllJobs = async (req, res) => {
 exports.getJobById = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
+
     const query = `
-      SELECT *
-      FROM jobs
-      WHERE id = $1
+      SELECT
+        j.*,
+        CASE WHEN ja.id IS NOT NULL THEN true ELSE false END as is_applied,
+        CASE WHEN sj.id IS NOT NULL THEN true ELSE false END as is_saved
+      FROM jobs j
+      LEFT JOIN job_applications ja ON ja.job_id = j.id AND ja.user_id = $2
+      LEFT JOIN saved_jobs sj ON sj.job_id = j.id AND sj.user_id = $2
+      WHERE j.id = $1
     `;
-    const result = await pool.query(query, [id]);
+    const result = await pool.query(query, [id, userId]);
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -100,62 +112,71 @@ exports.searchJobs = async (req, res) => {
       location,
       job_type,
       experience_level,
+      education,
       min_salary,
       max_salary,
       page = 1,
       limit = 10,
     } = req.query;
 
+    const userId = req.user?.id;
     const offset = (page - 1) * limit;
 
-    let conditions = ["active_flag = TRUE"];
+    let conditions = ["j.active_flag = TRUE"];
     let values = [];
     let idx = 1;
 
     // Search title + description
     if (q) {
-      conditions.push(`(title ILIKE $${idx} OR description ILIKE $${idx})`);
+      conditions.push(`(j.title ILIKE $${idx} OR j.description ILIKE $${idx})`);
       values.push(`%${q}%`);
       idx++;
     }
 
     // Filter skill (TEXT[])
     if (skill) {
-      conditions.push(`skills @> ARRAY[$${idx}]`);
+      conditions.push(`j.skills @> ARRAY[$${idx}]`);
       values.push(skill);
       idx++;
     }
 
     // Location
     if (location) {
-      conditions.push(`location ILIKE $${idx}`);
+      conditions.push(`j.location ILIKE $${idx}`);
       values.push(`%${location}%`);
       idx++;
     }
 
     // Job type (case-insensitive, flexible matching)
     if (job_type) {
-      conditions.push(`job_type ILIKE $${idx}`);
+      conditions.push(`j.job_type ILIKE $${idx}`);
       values.push(`%${job_type.replace(/\s+/g, '%')}%`);
       idx++;
     }
 
     // Experience level (case-insensitive, flexible matching)
     if (experience_level) {
-      conditions.push(`experience_level ILIKE $${idx}`);
+      conditions.push(`j.experience_level ILIKE $${idx}`);
       values.push(`%${experience_level.replace(/\s+/g, '%')}%`);
+      idx++;
+    }
+
+    // Education level (case-insensitive, flexible matching)
+    if (education) {
+      conditions.push(`j.education_level ILIKE $${idx}`);
+      values.push(`%${education.replace(/\s+/g, '%')}%`);
       idx++;
     }
 
     // Salary range
     if (min_salary) {
-      conditions.push(`salary_max >= $${idx}`);
+      conditions.push(`j.salary_max >= $${idx}`);
       values.push(min_salary);
       idx++;
     }
 
     if (max_salary) {
-      conditions.push(`salary_min <= $${idx}`);
+      conditions.push(`j.salary_min <= $${idx}`);
       values.push(max_salary);
       idx++;
     }
@@ -164,15 +185,24 @@ exports.searchJobs = async (req, res) => {
       ? `WHERE ${conditions.join(" AND ")}`
       : "";
 
+    // Add userId as a parameter for JOIN conditions
+    const userIdParam = `$${idx}`;
+    idx++;
+
     const query = `
-      SELECT *
-      FROM jobs
+      SELECT
+        j.*,
+        CASE WHEN ja.id IS NOT NULL THEN true ELSE false END as is_applied,
+        CASE WHEN sj.id IS NOT NULL THEN true ELSE false END as is_saved
+      FROM jobs j
+      LEFT JOIN job_applications ja ON ja.job_id = j.id AND ja.user_id = ${userIdParam}
+      LEFT JOIN saved_jobs sj ON sj.job_id = j.id AND sj.user_id = ${userIdParam}
       ${whereClause}
-      ORDER BY created_at DESC
+      ORDER BY j.created_at DESC
       LIMIT $${idx} OFFSET $${idx + 1}
     `;
 
-    values.push(limit, offset);
+    values.push(userId, limit, offset);
 
     const result = await pool.query(query, values);
 
@@ -194,9 +224,32 @@ exports.searchJobs = async (req, res) => {
 
 exports.applyJob = async (req, res) => {
   try {
+    console.log('=== APPLY JOB DEBUG ===');
+    console.log('req.body:', req.body);
+    console.log('req.headers:', req.headers);
+    console.log('Content-Type:', req.headers['content-type']);
+
     const userId = req.user.id;
     const jobId = req.params.id;
-    const { profile_id } = req.body; // For premium feature with multiple profiles
+
+    // 🔒 CHECK DAILY APPLY LIMIT (NEW)
+    const candidateLimits = require('../utils/candidateLimits');
+    const limitCheck = await candidateLimits.canApplyForJob(userId);
+
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: limitCheck.reason,
+        limit: {
+          current: limitCheck.current,
+          max: limitCheck.limit,
+          isPremium: false,
+        }
+      });
+    }
+
+    // Handle case where req.body is undefined or empty
+    const profile_id = req.body?.profile_id || null;
 
     // Get user's profile (default profile if not specified)
     let profileId = profile_id;
@@ -234,6 +287,9 @@ exports.applyJob = async (req, res) => {
        VALUES ($1, $2, $3)`,
       [userId, jobId, profileId]
     );
+
+    // 📊 INCREMENT APPLY COUNT (NEW)
+    await candidateLimits.incrementApplyCount(userId);
 
     res.json({
       success: true,

@@ -34,6 +34,26 @@ const jobAlertService = {
   getUnreadCount: async () => {
     const response = await api.get('/candidate/job-alerts/unread-count');
     return response.data;
+  },
+
+  // Delete single alert
+  deleteAlert: async (alertId) => {
+    const response = await api.delete(`/candidate/job-alerts/${alertId}`);
+    return response.data;
+  },
+
+  // Delete multiple alerts
+  deleteMultipleAlerts: async (alertIds) => {
+    const response = await api.post('/candidate/job-alerts/delete-multiple', {
+      alertIds
+    });
+    return response.data;
+  },
+
+  // Delete all read alerts
+  deleteAllReadAlerts: async () => {
+    const response = await api.delete('/candidate/job-alerts/read/all');
+    return response.data;
   }
 };
 

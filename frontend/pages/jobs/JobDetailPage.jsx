@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getJobDetail } from "../../services/jobService";
 import jobService from "../../services/jobService";
@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 /* =======================
    APPLY JOB MODAL
 ======================= */
-function ApplyJobModal({ isOpen, onClose, jobId, userId }) {
+function ApplyJobModal({ isOpen, onClose, jobId, userId, onSuccess }) {
   const [selectedProfile, setSelectedProfile] = useState("default");
   const [profiles, setProfiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -44,6 +44,10 @@ function ApplyJobModal({ isOpen, onClose, jobId, userId }) {
       if (response.success) {
         alert(response.message || "Application submitted successfully!");
         onClose();
+        // Call onSuccess to refresh job data
+        if (onSuccess) {
+          onSuccess();
+        }
       } else {
         alert(response.message || "Failed to apply for job");
       }
@@ -116,35 +120,28 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const [isApplied, setIsApplied] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
 
-  useEffect(() => {
-    const fetchJobDetail = async () => {
-      try {
-        setLoading(true);
-        const response = await getJobDetail(id);
-        setJob(response.data);
-      } catch (err) {
-        console.error("Error fetching job detail:", err);
-        setError("Không thể tải thông tin công việc");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const checkSavedStatus = async () => {
-      try {
-        const savedRes = await jobService.getSavedJobs(1, 1000);
-        const savedIds = savedRes.data.map(job => job.id);
-        setIsSaved(savedIds.includes(parseInt(id)));
-      } catch (err) {
-        console.error("Error checking saved status:", err);
-      }
-    };
-
-    fetchJobDetail();
-    checkSavedStatus();
+  const fetchJobDetail = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getJobDetail(id);
+      setJob(response.data);
+      // Set is_saved and is_applied from API response
+      setIsSaved(response.data.is_saved || false);
+      setIsApplied(response.data.is_applied || false);
+    } catch (err) {
+      console.error("Error fetching job detail:", err);
+      setError("Không thể tải thông tin công việc");
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchJobDetail();
+  }, [fetchJobDetail]);
 
   const handleToggleSave = async () => {
     try {
@@ -246,12 +243,21 @@ export default function JobDetailPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                     </svg>
                   </button>
-                  <button
-                    onClick={() => setShowApplyModal(true)}
-                    className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-                  >
-                    Apply Now →
-                  </button>
+                  {isApplied ? (
+                    <button
+                      disabled
+                      className="px-8 py-3 bg-gray-100 text-gray-500 rounded-lg font-semibold cursor-not-allowed"
+                    >
+                      Applied
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowApplyModal(true)}
+                      className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                    >
+                      Apply Now →
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -460,6 +466,7 @@ export default function JobDetailPage() {
         onClose={() => setShowApplyModal(false)}
         jobId={id}
         userId={user?.id}
+        onSuccess={fetchJobDetail}
       />
     </div>
   );

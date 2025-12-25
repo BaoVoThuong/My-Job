@@ -13,4 +13,7 @@ router.post(
 // MoMo callback (IPN) — KHÔNG auth
 router.post("/momo/ipn", paymentController.momoIPN);
 
+// Simulate payment success for sandbox testing
+router.post("/momo/simulate-success", paymentController.simulatePaymentSuccess);
+
 module.exports = router;

@@ -23,6 +23,10 @@ const jobService = {
     if (filters.job_type) params.append('job_type', filters.job_type);
     if (filters.level) params.append('level', filters.level);
     if (filters.employmentType) params.append('job_type', filters.employmentType);
+    // Map experience to experience_level for backend compatibility
+    if (filters.experience) params.append('experience_level', filters.experience);
+    if (filters.experience_level) params.append('experience_level', filters.experience_level);
+    if (filters.education) params.append('education', filters.education);
     if (filters.min_salary) params.append('min_salary', filters.min_salary);
     if (filters.max_salary) params.append('max_salary', filters.max_salary);
     if (filters.page) params.append('page', filters.page);
@@ -74,7 +78,7 @@ export async function getJobs(params = {}) {
     let response;
 
     // If có filters thì dùng searchJobs, không thì dùng getAllJobs
-    const hasFilters = params.q || params.location || params.job_type || params.experience_level || params.min_salary || params.max_salary || params.skill;
+    const hasFilters = params.q || params.location || params.job_type || params.experience_level || params.experience || params.education || params.min_salary || params.max_salary || params.skill;
 
     if (hasFilters) {
       console.log('Using searchJobs API with filters');
@@ -115,11 +119,9 @@ export async function getJobs(params = {}) {
 
 export async function getJobDetail(jobId) {
   const response = await jobService.getJobById(jobId);
-  return {
-    success: true,
-    data: response.data,
-    message: null,
-  };
+  // Backend already returns { success: true, data: {...} }
+  // So we just return it directly without wrapping again
+  return response;
 }
 
 export default jobService;

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Phone, ChevronDown, Search, Briefcase, User, Settings, LogOut, Bookmark } from 'lucide-react';
+import { Phone, ChevronDown, Search, Briefcase, User, Settings, LogOut, Bookmark, FileCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const languages = [
@@ -50,24 +50,36 @@ export default function HeaderGuest() {
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-10 text-sm">
             
-            {/* Left Menu: Đã thêm đầy đủ các mục Dashboard, Job Alerts... */}
+            {/* Left Menu: Role-based navigation */}
             <nav>
               <ul className="flex items-center gap-5">
                 <li><NavLink to="/home" className={navLinkClass}>Home</NavLink></li>
-                
-                {/* Dashboard đưa lên đầu để dễ bấm */}
-                <li><NavLink to="/candidate/dashboard" className={navLinkClass}>Dashboard</NavLink></li>
-                
-                <li><NavLink to="/find-job" className={navLinkClass}>Find Job</NavLink></li>
-                {user && <li><NavLink to="/saved-jobs" className={navLinkClass}>Saved Jobs</NavLink></li>}
-                <li><NavLink to="/find-employers" className={navLinkClass}>Employers</NavLink></li>
-                <li><NavLink to="/candidates" className={navLinkClass}>Candidates</NavLink></li>
 
-                {/* Các chức năng User */}
-                <li><NavLink to="/job-alerts" className={navLinkClass}>Job Alerts</NavLink></li>
+                {/* Dashboard - different for employer vs candidate */}
+                {user?.role === 'employer' ? (
+                  <>
+                    <li><NavLink to="/employer/dashboard" className={navLinkClass}>Dashboard</NavLink></li>
+                    <li><NavLink to="/employer/jobs" className={navLinkClass}>My Jobs</NavLink></li>
+                    <li><NavLink to="/employer/jobs/create" className={navLinkClass}>Post Job</NavLink></li>
+                    <li><NavLink to="/employer/saved-candidates" className={navLinkClass}>Saved Candidates</NavLink></li>
+                    <li><NavLink to="/employer/subscription" className={navLinkClass}>Subscription</NavLink></li>
+                    <li><NavLink to="/candidates" className={navLinkClass}>Candidates</NavLink></li>
+                  </>
+                ) : (
+                  <>
+                    <li><NavLink to="/candidate/dashboard" className={navLinkClass}>Dashboard</NavLink></li>
+                    <li><NavLink to="/find-job" className={navLinkClass}>Find Job</NavLink></li>
+                    {user && <li><NavLink to="/saved-jobs" className={navLinkClass}>Saved Jobs</NavLink></li>}
+                    {user && <li><NavLink to="/candidate/subscription" className={navLinkClass}>Subscription</NavLink></li>}
+                    <li><NavLink to="/find-employers" className={navLinkClass}>Employers</NavLink></li>
+                    <li><NavLink to="/candidates" className={navLinkClass}>Candidates</NavLink></li>
+                    {user && <li><NavLink to="/job-alerts" className={navLinkClass}>Job Alerts</NavLink></li>}
+                  </>
+                )}
+
+                {/* Common features for all users */}
                 <li><NavLink to="/mock-interview" className={navLinkClass}>Interview</NavLink></li>
                 <li><NavLink to="/take-certificate" className={navLinkClass}>Certificate</NavLink></li>
-                
                 <li><NavLink to="/customer-supports" className={navLinkClass}>Support</NavLink></li>
               </ul>
             </nav>
@@ -166,32 +178,85 @@ export default function HeaderGuest() {
                     <p className="text-xs text-gray-500">{user.email || 'No email'}</p>
                   </div>
 
-                  <Link
-                    to="/candidate/profile"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
-                  >
-                    <User size={18} />
-                    <span>My Profile</span>
-                  </Link>
+                  {user?.role === 'employer' ? (
+                    /* Employer Menu */
+                    <>
+                      <Link
+                        to="/employer/dashboard"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                      >
+                        <Briefcase size={18} />
+                        <span>Dashboard</span>
+                      </Link>
 
-                  <Link
-                    to="/saved-jobs"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
-                  >
-                    <Bookmark size={18} />
-                    <span>Saved Jobs</span>
-                  </Link>
+                      <Link
+                        to="/employer/jobs"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                      >
+                        <Briefcase size={18} />
+                        <span>My Jobs</span>
+                      </Link>
 
-                  <Link
-                    to="/candidate/profile/edit"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
-                  >
-                    <Settings size={18} />
-                    <span>Edit Profile</span>
-                  </Link>
+                      <Link
+                        to="/employer/jobs/create"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                      >
+                        <Settings size={18} />
+                        <span>Post New Job</span>
+                      </Link>
+
+                      <Link
+                        to="/employer/subscription"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                      >
+                        <Settings size={18} />
+                        <span>Subscription</span>
+                      </Link>
+                    </>
+                  ) : (
+                    /* Candidate Menu */
+                    <>
+                      <Link
+                        to="/candidate/profile"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                      >
+                        <User size={18} />
+                        <span>My Profile</span>
+                      </Link>
+
+                      <Link
+                        to="/saved-jobs"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                      >
+                        <Bookmark size={18} />
+                        <span>Saved Jobs</span>
+                      </Link>
+
+                      <Link
+                        to="/candidate/applied-jobs"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                      >
+                        <FileCheck size={18} />
+                        <span>Applied Jobs</span>
+                      </Link>
+
+                      <Link
+                        to="/candidate/profile/edit"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                      >
+                        <Settings size={18} />
+                        <span>Edit Profile</span>
+                      </Link>
+                    </>
+                  )}
 
                   <div className="border-t border-gray-100 mt-2 pt-2">
                     <button

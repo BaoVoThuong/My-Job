@@ -27,7 +27,7 @@ router.delete(
   employerController.deleteJob
 );
 
-// New
+// Get job applications - both routes for compatibility
 router.get(
   "/jobs/:jobId/applications",
   auth,
@@ -35,6 +35,21 @@ router.get(
   employerController.getJobApplications
 );
 
+router.get(
+  "/applications/:jobId",
+  auth,
+  checkRole("employer"),
+  employerController.getJobApplications
+);
+
+router.put(
+  "/jobs/:jobId/applications/status",
+  auth,
+  checkRole("employer"),
+  employerController.updateApplicationStatus
+);
+
+// Update application status by application ID
 router.put(
   "/applications/:applicationId/status",
   auth,

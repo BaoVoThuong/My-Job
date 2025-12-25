@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // --- 1. LAYOUTS & COMPONENTS ---
 import HeaderGuest from './components/HeaderGuest'; // Header chứa full menu
 import Footer from './components/Footer';
+import RoleBasedRedirect from './components/RoleBasedRedirect';
 
 // --- 2. AUTH PAGES (Đăng nhập/Đăng ký) ---
 import Login from './pages/Login';
@@ -17,16 +20,30 @@ import Candidates from './pages/Candidates';          // Trang danh sách ứng 
 import CandidateDashboard from './pages/CandidateDashboard';
 import CandidateProfile from './pages/CandidateProfile'; // Trang xem hồ sơ (Dùng chung cho cả mình và người khác)
 import CandidateProfileEdit from './pages/CandidateProfileEdit'; // Trang sửa hồ sơ (Modal hoặc trang riêng)
+import AppliedJobs from './pages/AppliedJobs'; // Trang việc làm đã ứng tuyển
+import CandidateSubscriptionPage from './pages/candidate/CandidateSubscriptionPage';
+import CandidatePaymentSuccessPage from './pages/candidate/CandidatePaymentSuccessPage';
 import JobAlerts from './pages/jobs/JobAlerts';
 import JobsListPage from './pages/jobs/JobsListPage'; // Trang tìm việc
 import JobDetailPage from './pages/jobs/JobDetailPage'; // Trang chi tiết job
 import SavedJobs from './pages/jobs/SavedJobs'; // Trang việc làm đã lưu
-import TestAPI from './pages/TestAPI'; // Test BE-FE Connection 
+import TestAPI from './pages/TestAPI'; // Test BE-FE Connection
 
-// --- 4. ROUTES CONFIG (Nếu có dùng file config cũ) ---
+// --- 4. EMPLOYER PAGES ---
+import EmployerDashboard from './pages/employer/EmployerDashboard';
+import CreateJobPage from './pages/employer/CreateJobPage';
+import EditJobPage from './pages/employer/EditJobPage';
+import EmployerJobListPage from './pages/employer/EmployerJobListPage';
+import JobApplicationsPage from './pages/employer/JobApplicationsPage';
+import SavedCandidatesPage from './pages/employer/SavedCandidatesPage';
+import EmployerSubscriptionPage from './pages/employer/EmployerSubscriptionPage';
+import PaymentHistoryPage from './pages/employer/PaymentHistoryPage';
+import PaymentSuccessPage from './pages/employer/PaymentSuccessPage';
+
+// --- 5. ROUTES CONFIG (Nếu có dùng file config cũ) ---
 import { jobsRoutes } from './routes/routes';
 
-// --- 5. AUTH CONTEXT ---
+// --- 6. AUTH CONTEXT ---
 import { AuthProvider } from './context/AuthContext';
 
 // Layout Chính: Header + Nội dung + Footer
@@ -46,6 +63,18 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
         <Routes>
 
           {/* =========================================================
@@ -65,26 +94,30 @@ export default function App() {
            ========================================================= */}
         <Route element={<MainLayout />}>
 
-          {/* Mặc định vào web -> Dashboard */}
-          <Route path="/" element={<Navigate to="/candidate/dashboard" replace />} />
-          
+          {/* Mặc định vào web -> Role-based Dashboard */}
+          <Route path="/" element={<RoleBasedRedirect />} />
+
           {/* --- CÁC TRANG CHÍNH --- */}
           <Route path="/home" element={<Home />} />
-          
-          <Route path="/dashboard" element={<Navigate to="/candidate/dashboard" replace />} />
-          <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
 
-          {/* Employer Dashboard - Placeholder for now */}
-          <Route path="/employer/dashboard" element={
-            <div className="min-h-screen bg-gray-50 p-10">
-              <div className="max-w-6xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-800 mb-10">Employer Dashboard</h1>
-                <div className="bg-white p-10 rounded-2xl shadow-sm">
-                  <p className="text-gray-500">Welcome to Employer Dashboard! Manage your job postings here.</p>
-                </div>
-              </div>
-            </div>
-          } />
+          <Route path="/dashboard" element={<RoleBasedRedirect />} />
+
+          {/* --- CANDIDATE ROUTES --- */}
+          <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
+          <Route path="/candidate/applied-jobs" element={<AppliedJobs />} />
+          <Route path="/candidate/subscription" element={<CandidateSubscriptionPage />} />
+          <Route path="/candidate/payment-success" element={<CandidatePaymentSuccessPage />} />
+
+          {/* --- EMPLOYER ROUTES --- */}
+          <Route path="/employer/dashboard" element={<EmployerDashboard />} />
+          <Route path="/employer/jobs" element={<EmployerJobListPage />} />
+          <Route path="/employer/jobs/create" element={<CreateJobPage />} />
+          <Route path="/employer/jobs/:jobId/edit" element={<EditJobPage />} />
+          <Route path="/employer/jobs/:jobId/applications" element={<JobApplicationsPage />} />
+          <Route path="/employer/saved-candidates" element={<SavedCandidatesPage />} />
+          <Route path="/employer/subscription" element={<EmployerSubscriptionPage />} />
+          <Route path="/employer/payment-history" element={<PaymentHistoryPage />} />
+          <Route path="/employer/payment-success" element={<PaymentSuccessPage />} />
 
           {/* --- DANH SÁCH ỨNG VIÊN --- */}
           <Route path="/candidates" element={<Candidates />} />

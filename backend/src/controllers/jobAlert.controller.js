@@ -187,5 +187,113 @@ exports.getUnreadCount = async (req, res) => {
   }
 };
 
+// Delete a single job alert
+exports.deleteJobAlert = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { alertId } = req.params;
+
+    // Check if alert exists and belongs to user
+    const checkResult = await pool.query(
+      `SELECT * FROM job_alert_notifications
+       WHERE id = $1 AND user_id = $2`,
+      [alertId, userId]
+    );
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Alert not found or you don't have permission to delete it"
+      });
+    }
+
+    // Delete the alert
+    await pool.query(
+      `DELETE FROM job_alert_notifications
+       WHERE id = $1 AND user_id = $2`,
+      [alertId, userId]
+    );
+
+    res.json({
+      success: true,
+      message: "Alert deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting job alert:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Delete multiple job alerts
+exports.deleteMultipleAlerts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { alertIds } = req.body;
+
+    if (!alertIds || !Array.isArray(alertIds) || alertIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "alertIds must be a non-empty array"
+      });
+    }
+
+    // Delete alerts that belong to the user
+    const result = await pool.query(
+      `DELETE FROM job_alert_notifications
+       WHERE id = ANY($1) AND user_id = $2
+       RETURNING id`,
+      [alertIds, userId]
+    );
+
+    res.json({
+      success: true,
+      message: `${result.rowCount} alert(s) deleted successfully`,
+      data: {
+        deletedCount: result.rowCount
+      }
+    });
+  } catch (error) {
+    console.error("Error deleting multiple alerts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Delete all read alerts
+exports.deleteAllReadAlerts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      `DELETE FROM job_alert_notifications
+       WHERE user_id = $1 AND read_at IS NOT NULL
+       RETURNING id`,
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      message: `${result.rowCount} read alert(s) deleted successfully`,
+      data: {
+        deletedCount: result.rowCount
+      }
+    });
+  } catch (error) {
+    console.error("Error deleting all read alerts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
 // Export helper function for use in other controllers
 exports.createJobAlert = createJobAlert;
